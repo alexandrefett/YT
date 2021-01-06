@@ -1,10 +1,5 @@
-<p align="center"><img width=100% height=15% src="https://triippz-tech.github.io/JYTB/images/jytb-logo-wide.png"></p>
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-![Java](https://img.shields.io/badge/JDK-11+-blue.svg)
-[![GitHub Issues](https://img.shields.io/github/issues/triippz-tech/JYTB.svg)](https://github.com/triippz-tech/JYTB/issues)
-![Contributions welcome](https://img.shields.io/badge/contributions-welcome-orange.svg)
-[![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://opensource.org/licenses/GPL-3.0)
+
 
 ## Basic Overview
 
@@ -13,7 +8,6 @@
 JYTB is a multi-threaded Java application, which "views" a given YouTube video. The bot auto-rotates proxies if a proxy
 has been determined to be dead, compromised, or the bot has finished watching the video. The goal is to provide unique 
 views to a YouTube video.
-<p align="center"><img width=95% src="https://triippz-tech.github.io/JYTB/images/run-example.png"></p>
 
 <br>
 
@@ -24,8 +18,6 @@ and issues which still need to be ironed out. The project should have it's first
 ## Running the App
 TDB - Will update upon first release
 
-## Contributing
-Please take a look at our [contributing](https://github.com/triippz-tech/JYTB/blob/master/docs/CONTRIBUTING.md) guidelines if you're interested in helping!
 #### Pending Features
 - Free Proxy Options
 - Paid Proxy Options
