@@ -49,7 +49,7 @@ public class App {
     private static String apiKey = "RgSnuSLsXCNwwkxAUBrKFhBSRuX8JMbXdkn6tRGOP08";
     private static Driver driverType = Driver.CHROME;
     private static Integer watchLength = 60;
-    private static Integer numberOfWorkers = 20;
+    private static Integer numberOfWorkers = 5;
 
     private static String[] schemes = { "http","https" };
     private static UrlValidator urlValidator = new UrlValidator(schemes);
@@ -68,8 +68,8 @@ public class App {
     public static void main(String[] args) throws IOException, URISyntaxException {
 
 
-  //      YTViews frame = new YTViews();
-  //      frame.setVisible(true);
+        YTViews frame = new YTViews();
+        frame.setVisible(true);
 
         showWelcome();
         //setVideoUrl();
@@ -80,14 +80,20 @@ public class App {
 
         clearScreen();
 
+        StatusModel[] statusModels = new StatusModel[numberOfWorkers];
+        StatusViewLabel[] views = new StatusViewLabel[numberOfWorkers];
+
         executor = Executors.newFixedThreadPool(numberOfWorkers);
         for ( int i = 0; i < numberOfWorkers; i++)
         {
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException ex){
-                ex.printStackTrace();
-            }
+            StatusModel statusModel = new StatusModel();
+            statusModels[i] = statusModel;
+            views[i] = new StatusViewLabel(statusModel);
+            statusModel.registerObserver(views[i]);
+            frame.getWorkerPanel().add(views[i]);
+            frame.getWorkerPanel().revalidate();
+            frame.revalidate();
+
             Runnable worker = new BotWorker(
                     "Worker " + (i + 1),
                     apiKey,
@@ -95,7 +101,8 @@ public class App {
                     driverType,
                     watchLength,
                     AnsiColors.randomForeground(),
-                    DriverConfiguration.getDriver());
+                    DriverConfiguration.getDriver(),
+                    statusModels[i]);
             executor.execute(worker);
         }
 

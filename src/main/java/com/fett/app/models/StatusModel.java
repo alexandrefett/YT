@@ -1,5 +1,7 @@
 package com.fett.app.models;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,8 +28,14 @@ public class StatusModel {
     synchronized void setStatus(String status) {  this.status = status; }
     synchronized String getId() { return id; }
     synchronized void setId(String id) {  this.id = id; }
-    public synchronized Object[] getData(){
-        return new Object[]{id,views, status};
+    public synchronized String getData(){
+        return new String (
+    StringUtils.rightPad(id, 10) +
+            " - " +
+            StringUtils.rightPad(String.valueOf(views), 5) +
+            " - " +
+            StringUtils.rightPad(status, 25)
+        );
     }
 
     //-- handle observers

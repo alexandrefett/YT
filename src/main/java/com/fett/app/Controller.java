@@ -8,11 +8,12 @@ public class Controller {
     public Controller(int numOfWorkers) {
         this.numOfWorkers = numOfWorkers;
         StatusModel[] statusModels = new StatusModel[this.numOfWorkers];
-        View[] views = new View[this.numOfWorkers];
+        StatusViewLabel[] views = new StatusViewLabel[this.numOfWorkers];
         for (int i=0;i<this.numOfWorkers;i++){
             StatusModel statusModel = new StatusModel();
             statusModels[i] = statusModel;
-//            View view = new View(statusModel);
+            views[i] = new StatusViewLabel(statusModel);
+            statusModel.registerObserver(views[i]);
         }
     }
 }

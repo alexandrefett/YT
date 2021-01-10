@@ -3,12 +3,9 @@ package com.fett.app;
 import com.fett.app.models.StatusModel;
 import com.fett.app.models.ViewLengthModel;
 import com.fett.app.models.WorkersModel;
-
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.concurrent.ExecutorService;
 
 public class YTViews extends JFrame{
     private JTextField textField1;
@@ -17,10 +14,8 @@ public class YTViews extends JFrame{
     private JComboBox mWorkers;
     private JComboBox mLength;
     private JPanel rootPanel;
-    private JTable mWorkersTable;
-    private JTabbedPane tabbedPane1;
-    private static DefaultTableModel tableModel;
-    private static ExecutorService executor;
+    private JPanel workerPanel;
+
 
     public YTViews() {
         add(rootPanel);
@@ -30,7 +25,12 @@ public class YTViews extends JFrame{
         initPanel();
     }
 
+    public JPanel getWorkerPanel(){
+        return workerPanel;
+    }
+
     private void initPanel(){
+        workerPanel.setLayout(new BoxLayout(workerPanel, BoxLayout.Y_AXIS));
         mLength.addItem(new ViewLengthModel("30 secs", 30));
         mLength.addItem(new ViewLengthModel("60 secs", 60));
         mLength.addItem(new ViewLengthModel("120 secs", 120));
@@ -45,21 +45,9 @@ public class YTViews extends JFrame{
 
         String[] columns ={"Worker", "Status", "Count"};
 
-        tableModel = new DefaultTableModel(0,0);
-        tableModel.setColumnIdentifiers(columns);
-        tableModel.addRow(new Object[] {"Worker 1","--","0"});
-        mWorkersTable.setModel(tableModel);
         mWorkers.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                for( int i = tableModel.getRowCount() - 1; i >= 0; i-- )
-                {
-                    tableModel.removeRow(i);
-                }
-                for( int i = 0; i < ((WorkersModel)mWorkers.getSelectedItem()).getValue(); i++ )
-                {
-                    tableModel.addRow(new Object[] {"Worker "+i,"--","0"});
-                }
             }
         });
         startButton.addActionListener(new ActionListener() {

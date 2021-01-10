@@ -47,4 +47,5 @@ public class Constants {
     public static final String OPERA = "OPERA";
     public static final String SAFARI = "SAFARI";
 
+    public static final String[] FEATURES = {"&feature="};
 }

@@ -36,7 +36,7 @@ import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
@@ -45,7 +45,6 @@ import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -66,9 +65,10 @@ public class BotWorker implements Runnable {
     private Integer numberOfWatches = 0;
     private StatusModel statusModel;
     private String[] videos;
+    private final StatusModel model;
 
     public BotWorker(String workerName, String apiKey, String[] videos, Driver driverType,
-                     Integer watchLength, String workerColor, File driverLocation)
+                     Integer watchLength, String workerColor, File driverLocation, StatusModel model)
             throws IOException, URISyntaxException {
         this.workerName = workerName;
         this.apiKey = apiKey;
@@ -77,6 +77,7 @@ public class BotWorker implements Runnable {
         this.watchLength = watchLength;
         this.workerColor = workerColor;
         this.driverLocation = driverLocation;
+        this.model = model;
         this.initializeBot();
     }
 
@@ -99,6 +100,7 @@ public class BotWorker implements Runnable {
                 break;
         }
         Log.WINFO(this.workerName, this.workerColor, "Initialization Complete!");
+        model.changeValue(workerName, numberOfWatches, "Initialization Complete!");
     }
 
     private void setChromeDriver() {
@@ -127,7 +129,7 @@ public class BotWorker implements Runnable {
 
         options.setCapability("proxy", this.proxies.getCurrentProxy());
         this.webDriver = new ChromeDriver(options);
-        Log.WINFO(this.workerName, this.workerColor, "Chrome Driver Set.");
+        model.changeValue(workerName, numberOfWatches, "Chrome Driver Set.");
     }
 
     /**
@@ -157,13 +159,12 @@ public class BotWorker implements Runnable {
         options.setCapability(CapabilityType.LOGGING_PREFS, logPrefs);
 
         options.setProfile(profile);
-        options.setHeadless(true);
+        //options.setHeadless(true);
         options.setBinary(binary);
         options.setProxy(this.proxies.getCurrentProxy());
         options.setCapability("proxy", this.proxies.getCurrentProxy());
         this.webDriver = new FirefoxDriver(options);
 
-        Log.WINFO(this.workerName, this.workerColor, "Firefox Driver Set");
     }
 
     /**
@@ -199,19 +200,23 @@ public class BotWorker implements Runnable {
                         .executeScript("return document.readyState")
                         .equals("complete"));
         try {
-            Thread.sleep(3000);
+            Thread.sleep(5000);
             this.webDriver.findElement(By.id("dismiss-button")).click();
-            Log.WINFO(this.workerName, this.workerColor,"Pressing NO,THANKS");
+            model.changeValue(workerName, numberOfWatches, "Pressing NO,THANKS");
         } catch (NoSuchElementException ex) {
-            Log.WINFO(this.workerName, this.workerColor,"NO,THANKS not found... continue...");
+            model.changeValue(workerName, numberOfWatches, "NO,THANKS not found. Continue...");
         }
         try {
-            Thread.sleep(3000);
-            this.webDriver.findElement(By.id("introAgreeButton")).click();
-            Log.WINFO(this.workerName, this.workerColor,"Accepting COOKIES...");
-
-        } catch (NoSuchElementException ex){
-            Log.WINFO(this.workerName, this.workerColor,"COOKIES already accepted... continue...");
+            Thread.sleep(5000);
+            this.webDriver.switchTo().frame(
+                    this.webDriver.findElement(By.id("iframe")));
+            new WebDriverWait(this.webDriver, 5).until(
+                    ExpectedConditions.elementToBeClickable(By.id("introAgreeButton"))).click();
+            this.webDriver.switchTo().defaultContent();
+            model.changeValue(workerName, numberOfWatches, "Accepting COOKIES...");
+        } catch (NoSuchElementException | org.openqa.selenium.TimeoutException ex){
+            this.webDriver.switchTo().defaultContent();
+            model.changeValue(workerName, numberOfWatches, "No COOKIES consent. Continue...");
         }
         try{
             //this.webDriver.findElement(By.xpath("//a[@href="+"\"" + videoUrl + "\"" + "]")).click();
@@ -229,6 +234,7 @@ public class BotWorker implements Runnable {
                     //if (Objects.equals(playButton.getAttribute("title"), "Play (k)"))
                         playButton.click();
                 } catch (ElementClickInterceptedException e) {
+                    model.changeValue(workerName, numberOfWatches, e.getMessage());
                     throw new ElementClickInterceptedException(e.getMessage());
                 }
 
@@ -247,27 +253,18 @@ public class BotWorker implements Runnable {
                     DecimalFormat decimalFormat = new DecimalFormat(pattern);
                     String format = decimalFormat.format(rand / 1000);
 
-                    Log.WINFO(this.workerName, this.workerColor, "Bot Watching now for "+format+" Seconds");
+                    model.changeValue(workerName, numberOfWatches, "Bot Watching now for "+format+" Seconds");
                     return rand;
 
                 }
             } else  {
-                Log.WINFO(this.workerName, this.workerColor, "reCaptcha Showing!!");
-                // STILL NOT WORKING FOR SOLVING RECAPTCHA PROBLEM, NEED RESTART VPS TO SOLVE THIS.
-                try {
-                    Log.WINFO(this.workerName, this.workerColor, "iframe found!");
-                }catch (Exception e){
-                    System.out.println("ERROR: "+e);
-                }
-
-
+                model.changeValue(workerName, numberOfWatches, "reCaptcha Showing!!");
                 throw new NoSuchTitleException(String.format("Title does not end with YouTube, please ensure you have " +
                         "provided the correct URL to the video. Actual title: %s", this.webDriver.getTitle()));
             }
 
         } catch(NoSuchElementException ex){
-            Log.WINFO(this.workerName, this.workerColor,"Fail...");
-            Log.WINFO(this.workerName, this.workerColor,ex.getMessage());
+            model.changeValue(workerName, numberOfWatches, "Fail...");
         }
         return 0;
     }
@@ -307,7 +304,7 @@ public class BotWorker implements Runnable {
      */
     private void resetBot()
     {
-        Log.WINFO(workerName, workerColor, "Resetting Bot");
+        model.changeValue(workerName, numberOfWatches, "Resetting Bot");
         if ( this.webDriver != null )
             this.webDriver.quit();
 
@@ -350,10 +347,11 @@ public class BotWorker implements Runnable {
     public void run() {
         Random r = new Random();
         int nextVideo = r.nextInt(videos.length);
-        try {
-            for (;;) {
+
+        for (;;) {
+            try {
                 Thread.sleep(this.setVideo(videos[nextVideo]));
-                Log.WINFO(workerName, workerColor,"Finished video");
+                model.changeValue(workerName, numberOfWatches, "Finished video");
                 this.numberOfWatches += 1;
                 this.status();
                 this.resetBot();
@@ -361,15 +359,14 @@ public class BotWorker implements Runnable {
                 if(nextVideo>=videos.length){
                     nextVideo = 0;
                 }
-            }
-        } catch (InterruptedException e) {
-            Log.WERROR(workerName, workerColor,e.getMessage());
-            if ( this.webDriver != null ) {
-                this.webDriver.close();
-                this.webDriver.quit();
+            } catch (InterruptedException e) {
+                Log.WERROR(workerName, workerColor,e.getMessage());
+                Log.WINFO(this.workerName, this.workerColor,e.getMessage());
+                model.changeValue(workerName, numberOfWatches, e.getMessage());
+                if ( this.webDriver != null ) {
+                    this.webDriver.quit();
+                }
             }
         }
-
-        Log.WINFO(workerName, workerColor,": Completed task");
     }
 }
