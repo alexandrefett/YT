@@ -36,6 +36,7 @@ import com.google.gson.JsonSyntaxException;
 import org.apache.commons.validator.routines.UrlValidator;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
@@ -47,8 +48,8 @@ public class App {
     private static String version = "0.0.1";
     private static String apiKey = "RgSnuSLsXCNwwkxAUBrKFhBSRuX8JMbXdkn6tRGOP08";
     private static Driver driverType = Driver.CHROME;
-    private static Integer watchLength = 120;
-    private static Integer numberOfWorkers = 2;
+    private static Integer watchLength = 60;
+    private static Integer numberOfWorkers = 20;
 
     private static String[] schemes = { "http","https" };
     private static UrlValidator urlValidator = new UrlValidator(schemes);
@@ -64,8 +65,7 @@ public class App {
             "https://youtu.be/kAw4Djrnufk",
             "https://youtu.be/PZCJ8mQMz6Y"
     };
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException, URISyntaxException {
 
 
   //      YTViews frame = new YTViews();
@@ -80,8 +80,8 @@ public class App {
 
         clearScreen();
 
-        executor = Executors.newFixedThreadPool(videos.length);
-        for ( int i = 0; i < videos.length; i++)
+        executor = Executors.newFixedThreadPool(numberOfWorkers);
+        for ( int i = 0; i < numberOfWorkers; i++)
         {
             try {
                 Thread.sleep(2000);
@@ -290,8 +290,9 @@ public class App {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         HashMap<String, String> params = new HashMap<>();
 
-        params.put("access_key", apiKey);
-//        params.put("proxy_location","br");
+//        params.put("access_key", apiKey);
+        params.put("location","BR");
+        params.put("youtube","true");
 
         Request request = new Request(UrlUtil.buildUrlQuery(Constants.SearchEndpoint, params));
         try {

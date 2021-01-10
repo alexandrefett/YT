@@ -132,7 +132,6 @@ public class OrbitProxie {
             }
         } catch (JsonSyntaxException | IOException e) {
             Log.WERROR(workerName, workerColor, e.getMessage());
-            generateProxies();
         }
     }
 }

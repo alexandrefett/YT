@@ -21,7 +21,10 @@ package com.fett.app.utils;
 import com.fett.app.models.Driver;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
@@ -31,11 +34,14 @@ public class UserAgent {
     private Driver driverType;
     private List<String> userAgentList;
 
-    public UserAgent(Driver driverType) throws IOException {
+    public UserAgent(Driver driverType) throws IOException, URISyntaxException {
         this.driverType = driverType;
+
+        System.out.println(Paths.get(Objects.requireNonNull(
+                getClass().getClassLoader().getResource("userAgents/" + driverType.toString() + ".txt").getPath())));
         this.userAgentList = Files.readAllLines(
                 Paths.get(Objects.requireNonNull(
-                        getClass().getClassLoader().getResource("userAgents/" + driverType.toString() + ".txt")).getPath()));
+                        getClass().getClassLoader().getResource("userAgents/" + driverType.toString() + ".txt").getPath())));
     }
 
     public String randomUA() {

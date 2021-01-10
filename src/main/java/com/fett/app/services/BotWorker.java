@@ -36,14 +36,17 @@ import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Stream;
@@ -66,8 +69,7 @@ public class BotWorker implements Runnable {
 
     public BotWorker(String workerName, String apiKey, String[] videos, Driver driverType,
                      Integer watchLength, String workerColor, File driverLocation)
-            throws IOException
-    {
+            throws IOException, URISyntaxException {
         this.workerName = workerName;
         this.apiKey = apiKey;
         this.videos = videos;
@@ -79,7 +81,7 @@ public class BotWorker implements Runnable {
     }
 
     @SuppressWarnings("Duplicates")
-    private void initializeBot() throws IOException {
+    private void initializeBot() throws IOException, URISyntaxException {
         Log.WINFO(this.workerName, this.workerColor, "Initializing. . .");
         this.proxies = new OrbitProxie(this.workerName, this.apiKey, this.workerColor);
         this.userAgent = new UserAgent(this.driverType);
@@ -133,6 +135,7 @@ public class BotWorker implements Runnable {
      * to ensure our proxy is set correctly.
      */
     private void setFirefoxDriver() {
+        System.setProperty("webdriver.gecko.driver", "./geckodriver/geckodriver");
         FirefoxOptions options = new FirefoxOptions();
         FirefoxProfile profile = new FirefoxProfile();
         FirefoxBinary binary = new FirefoxBinary(this.driverLocation);
@@ -171,7 +174,7 @@ public class BotWorker implements Runnable {
      * @throws ElementClickInterceptedException
      * @throws NoSuchTitleException Our page doesnt end with YouTube, maybe there is an incorrect URL
      */
-    private int setVideo(String video) throws ElementClickInterceptedException {
+    private int setVideo(String video) throws InterruptedException {
 
         this.webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         this.webDriver.get("https://www.google.com/");
@@ -189,11 +192,27 @@ public class BotWorker implements Runnable {
                         .equals("complete"));
 //        p.submit();
 //        Log.WINFO(this.workerName, this.workerColor,"Searching vídeo...");
+
         this.webDriver.get(video);
         new WebDriverWait(webDriver, 15).until(
                 webDriver -> ((JavascriptExecutor) webDriver)
                         .executeScript("return document.readyState")
                         .equals("complete"));
+        try {
+            Thread.sleep(3000);
+            this.webDriver.findElement(By.id("dismiss-button")).click();
+            Log.WINFO(this.workerName, this.workerColor,"Pressing NO,THANKS");
+        } catch (NoSuchElementException ex) {
+            Log.WINFO(this.workerName, this.workerColor,"NO,THANKS not found... continue...");
+        }
+        try {
+            Thread.sleep(3000);
+            this.webDriver.findElement(By.id("introAgreeButton")).click();
+            Log.WINFO(this.workerName, this.workerColor,"Accepting COOKIES...");
+
+        } catch (NoSuchElementException ex){
+            Log.WINFO(this.workerName, this.workerColor,"COOKIES already accepted... continue...");
+        }
         try{
             //this.webDriver.findElement(By.xpath("//a[@href="+"\"" + videoUrl + "\"" + "]")).click();
             //Log.WINFO(this.workerName, this.workerColor,"Click link...");
@@ -204,21 +223,19 @@ public class BotWorker implements Runnable {
 
             if ( this.webDriver.getTitle().endsWith("YouTube") )
             {
-
-                WebElement playButton = this.webDriver.findElement(By.className("ytp-play-button"));
+                //WebElement playButton = this.webDriver.findElement(By.className("ytp-play-button"));
                 try {
-                    if (Objects.equals(playButton.getAttribute("title"), "Play (k)"))
+                    WebElement playButton = this.webDriver.findElement(By.id("player-container"));
+                    //if (Objects.equals(playButton.getAttribute("title"), "Play (k)"))
                         playButton.click();
                 } catch (ElementClickInterceptedException e) {
                     throw new ElementClickInterceptedException(e.getMessage());
                 }
 
-
-
-                //String currentVideoTime = this.webDriver.findElement(By.className("ytp-time-current")).getAttribute("innerHTML");
-                //String totalVideoTime = this.webDriver.findElement(By.className("ytp-time-duration")).getAttribute("innerHTML");
+                String currentVideoTime = this.webDriver.findElement(By.className("ytp-time-current")).getAttribute("innerHTML");
+                String totalVideoTime = this.webDriver.findElement(By.className("ytp-time-duration")).getAttribute("innerHTML");
                 if (this.watchLength == -1) {
-                    return 240;//calculateWatchTime( currentVideoTime, totalVideoTime );
+                    return calculateWatchTime( currentVideoTime, totalVideoTime );
                 } else {
                     // Randomize watch duration every visits,
                     int w = this.watchLength * 1000;
@@ -292,7 +309,7 @@ public class BotWorker implements Runnable {
     {
         Log.WINFO(workerName, workerColor, "Resetting Bot");
         if ( this.webDriver != null )
-            this.webDriver.close();
+            this.webDriver.quit();
 
         this.proxies.generateProxies();;
 
@@ -331,7 +348,8 @@ public class BotWorker implements Runnable {
 
     @Override
     public void run() {
-        int nextVideo = 0;
+        Random r = new Random();
+        int nextVideo = r.nextInt(videos.length);
         try {
             for (;;) {
                 Thread.sleep(this.setVideo(videos[nextVideo]));
