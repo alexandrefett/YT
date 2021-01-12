@@ -47,5 +47,18 @@ public class Constants {
     public static final String OPERA = "OPERA";
     public static final String SAFARI = "SAFARI";
 
-    public static final String[] FEATURES = {"&feature="};
+    public static final String YOUTUBE_URL = "https://www.youtube.com/watch?v=";
+
+    public static String getFeature() {
+        Random r = new Random();
+        return FEATURES[r.nextInt(FEATURES.length)];
+    }
+    public static final String[] FEATURES = {
+            "&list=PLiDVNeW10ZI0UytaRYEajD2we9WvODxoP",
+            "&feature=channel",
+            "&feature=player_embedded",
+            "&feature=youtu.be",
+            "&feature=related",
+            "&feature=spotlight",
+            ""};
 }

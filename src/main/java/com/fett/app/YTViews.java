@@ -15,13 +15,14 @@ public class YTViews extends JFrame{
     private JComboBox mLength;
     private JPanel rootPanel;
     private JPanel workerPanel;
+    private JButton bVideos;
+    private String[] videos;
 
-
-    public YTViews() {
+    public YTViews(String[] videos) {
         add(rootPanel);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
-
+        this.videos = videos;
         initPanel();
     }
 
@@ -54,6 +55,13 @@ public class YTViews extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
 
+            }
+        });
+        bVideos.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFrame videosForm = new VideosForm(videos);
+                videosForm.setVisible(true);
             }
         });
         revalidate();

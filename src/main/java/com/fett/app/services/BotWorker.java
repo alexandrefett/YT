@@ -194,7 +194,7 @@ public class BotWorker implements Runnable {
 //        p.submit();
 //        Log.WINFO(this.workerName, this.workerColor,"Searching vídeo...");
 
-        this.webDriver.get(video);
+        this.webDriver.get(Constants.YOUTUBE_URL + video + Constants.getFeature());
         new WebDriverWait(webDriver, 15).until(
                 webDriver -> ((JavascriptExecutor) webDriver)
                         .executeScript("return document.readyState")

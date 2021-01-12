@@ -56,19 +56,47 @@ public class App {
     private static StatusModel[] statusModels;
     private static ExecutorService executor;
     private static String[] videos = {
-            "https://youtu.be/8sil0DpZE-c",
-            "https://youtu.be/SVdSXJfPBAQ",
-            "https://youtu.be/sCPIdfuomqs",
-            "https://youtu.be/Zrjmn0PAFSU",
-            "https://youtu.be/J2jtAmzp7es",
-            "https://youtu.be/cBIi0GLPgJY",
-            "https://youtu.be/kAw4Djrnufk",
-            "https://youtu.be/PZCJ8mQMz6Y"
+            "8sil0DpZE-c",
+            "SVdSXJfPBAQ",
+            "sCPIdfuomqs",
+            "Zrjmn0PAFSU",
+            "J2jtAmzp7es",
+            "cBIi0GLPgJY",
+            "kAw4Djrnufk",
+            "PZCJ8mQMz6Y",
+            "sUe9O3dLG4s",
+            "n3_Mb75PIoA",
+            "wXm-U1We_XE",
+            "y9bVQckcbH0",
+            "HoDa46ZIiX8",
+            "j1mUYFcpcVE",
+            "NM94skTLBEc",
+            "R5nHi2D5Uws",
+            "2j2W3oFHBuY",
+            "aNLdY1Tg4Iw",
+            "bQiZMcgPAJs",
+            "Qei2IZfzncs",
+            "u6mho6y9zq0",
+            "wa9qRfFtSr0",
+            "zVe5hqbe7Kg",
+            "wwzxXM-HBmQ",
+            "-wNih9q8eSE",
+            "7lG5u_IKozc",
+            "_5I7KmNwR1Y",
+            "djfGHL7V43c",
+            "CMbMokQVHJA",
+            "Qwa5dpj7cIY",
+            "Z2TibE72u8g",
+            "0tkw5ll-jeE",
+            "WNUE_vn_cGY",
+            "FvB-ZTizCoM",
+            "1UCUq8cGS2g",
+            "LOEeKbMyIVE"
     };
     public static void main(String[] args) throws IOException, URISyntaxException {
 
 
-        YTViews frame = new YTViews();
+        YTViews frame = new YTViews(videos);
         frame.setVisible(true);
 
         showWelcome();
@@ -92,7 +120,7 @@ public class App {
             statusModel.registerObserver(views[i]);
             frame.getWorkerPanel().add(views[i]);
             frame.getWorkerPanel().revalidate();
-            frame.revalidate();
+            frame.pack();
 
             Runnable worker = new BotWorker(
                     "Worker " + (i + 1),
