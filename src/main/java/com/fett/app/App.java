@@ -95,7 +95,6 @@ public class App {
                 // Wait until all threads are finish
                 while (!executor.isTerminated()) {
                 }
-                System.out.println("\nFinishing threads");
                 if (throttle) {
                     numberOfWorkers++;
                 } else {
@@ -112,7 +111,6 @@ public class App {
         videos = FileUtil.readFile("video_title.txt");
         ids = FileUtil.readFile("video_id.txt");
         ids.forEach(e -> ids.set(ids.indexOf(e), "https://www.youtube.com/watch?v=" + e));
-        System.out.println("Videos loaded: " + videos.size());
         ArrayList<String> config = FileUtil.readFile("config.txt");
         channelURL = config.get(0);
         apiKey = config.get(1);

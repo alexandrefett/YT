@@ -93,7 +93,6 @@ public class BotWorker implements Runnable {
 
         chromeOptions.add(String.format("--proxy-server=%s", proxies.getCurrentProxy().getHttpProxy()));
         String a = userAgent.randomUA();
-        System.out.println(a);
         chromeOptions.add(String.format("--user-agent=%s", a));
         chromeOptions.add("--mute-audio");
         chromeOptions.add("--incognito");
@@ -175,7 +174,6 @@ public class BotWorker implements Runnable {
                     return true;
                 }
             }
-            System.out.println("Not found: "+video);
         } catch (WebDriverException | InterruptedException ex){
             System.out.println(ex.getMessage());
         }
@@ -189,11 +187,6 @@ public class BotWorker implements Runnable {
                         .equals("complete"));
 
         try{
-            String a = this.webDriver.getCurrentUrl();
-            String j = this.webDriver.getTitle();
-            System.out.println("Your page title Is : "+j);
-            System.out.println("Current URL Is : "+a);
-
             if ( this.webDriver.getTitle().endsWith("YouTube") )
             {
                 //WebElement playButton = this.webDriver.findElement(By.className("ytp-play-button"));
@@ -284,7 +277,6 @@ public class BotWorker implements Runnable {
                     //this.resetBot();
                 } catch (InterruptedException e) {
                     model.changeValue(workerName, numberOfWatches, e.getMessage(),videos.get(i));
-                    System.out.println(e.getMessage());
                 }
             }
             model.changeValue(workerName, numberOfWatches, "Finishing worker...","-");
