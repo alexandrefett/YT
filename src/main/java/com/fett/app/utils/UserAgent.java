@@ -37,11 +37,7 @@ public class UserAgent {
     public UserAgent(Driver driverType) throws IOException, URISyntaxException {
         this.driverType = driverType;
 
-        System.out.println(Paths.get(Objects.requireNonNull(
-                getClass().getClassLoader().getResource("userAgents/" + driverType.toString() + ".txt").getPath())));
-        this.userAgentList = Files.readAllLines(
-                Paths.get(Objects.requireNonNull(
-                        getClass().getClassLoader().getResource("userAgents/" + driverType.toString() + ".txt").getPath())));
+        this.userAgentList = FileUtil.readFile("CHROME.txt");
     }
 
     public String randomUA() {

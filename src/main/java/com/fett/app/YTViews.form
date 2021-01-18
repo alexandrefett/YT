@@ -13,14 +13,8 @@
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Video URL:"/>
+          <text value="Channel URL:"/>
         </properties>
-      </component>
-      <component id="f0e4b" class="javax.swing.JTextField" binding="textField1" default-binding="true">
-        <constraints>
-          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
       </component>
       <component id="142b5" class="javax.swing.JLabel">
         <constraints>
@@ -30,26 +24,12 @@
           <text value="API Key:"/>
         </properties>
       </component>
-      <component id="662cb" class="javax.swing.JTextField" binding="textField2" default-binding="true">
-        <constraints>
-          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
-      </component>
       <component id="a7fe0" class="javax.swing.JLabel">
         <constraints>
           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Workers:"/>
-        </properties>
-      </component>
-      <component id="30630" class="javax.swing.JComboBox" binding="mWorkers">
-        <constraints>
-          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties>
-          <editable value="false"/>
+          <text value="Simultaneous viewers:"/>
         </properties>
       </component>
       <component id="b9e7a" class="javax.swing.JButton" binding="startButton" default-binding="true">
@@ -60,18 +40,12 @@
           <text value="Start"/>
         </properties>
       </component>
-      <component id="ed403" class="javax.swing.JComboBox" binding="mLength">
-        <constraints>
-          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
-      </component>
       <component id="a3fc0" class="javax.swing.JLabel">
         <constraints>
           <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Length:"/>
+          <text value="Watch length:"/>
         </properties>
       </component>
       <hspacer id="8415c">
@@ -81,21 +55,70 @@
           </grid>
         </constraints>
       </hspacer>
-      <grid id="5ffcd" binding="workerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="0" left="0" bottom="0" right="0"/>
+      <scrollpane id="4a70b">
         <constraints>
-          <grid row="6" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <grid row="6" column="0" row-span="1" col-span="3" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <preferred-size width="-1" height="300"/>
+          </grid>
         </constraints>
         <properties/>
         <border type="none"/>
-        <children/>
-      </grid>
-      <component id="99836" class="javax.swing.JButton" binding="bVideos">
+        <children>
+          <grid id="5ffcd" binding="workerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="0" left="0" bottom="0" right="0"/>
+            <constraints/>
+            <properties/>
+            <border type="none"/>
+            <children/>
+          </grid>
+        </children>
+      </scrollpane>
+      <component id="94465" class="javax.swing.JLabel" binding="lChannel">
         <constraints>
-          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Videos..."/>
+          <text value="Label"/>
+        </properties>
+      </component>
+      <component id="af46c" class="javax.swing.JLabel" binding="lApikey">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="lApikey"/>
+        </properties>
+      </component>
+      <component id="41fe0" class="javax.swing.JLabel" binding="lworkers">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Label"/>
+        </properties>
+      </component>
+      <component id="ad671" class="javax.swing.JLabel" binding="lWatchLength">
+        <constraints>
+          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Label"/>
+        </properties>
+      </component>
+      <component id="8fc7" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Videos added:"/>
+        </properties>
+      </component>
+      <component id="a147f" class="javax.swing.JLabel" binding="lVideosAdded">
+        <constraints>
+          <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value="Label"/>
         </properties>
       </component>
     </children>

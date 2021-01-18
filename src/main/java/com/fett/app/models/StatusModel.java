@@ -7,19 +7,21 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StatusModel {
-    private int views =0;
-    private String status = "";
-    private String id = "";
+    private int views = 0;
+    private String status = "-";
+    private String id = "-";
+    private String title = "-";
 
     public StatusModel(){}
 
     private final Set<Observer> mObservers = Collections.newSetFromMap(
             new ConcurrentHashMap<Observer, Boolean>(0));
 
-    public void changeValue(String id, int value, String status){
+    public void changeValue(String id, int value, String status, String title){
         this.views = value;
         this.status = status;
         this.id = id;
+        this.title = title;
         notifyObservers();
     }
     synchronized int getViews() { return views; }
@@ -28,6 +30,8 @@ public class StatusModel {
     synchronized void setStatus(String status) {  this.status = status; }
     synchronized String getId() { return id; }
     synchronized void setId(String id) {  this.id = id; }
+    public synchronized String getTitle() { return title; }
+    synchronized void setTitle(String title) {  this.title = title; }
     public synchronized String getData(){
         return new String (
     StringUtils.rightPad(id, 10) +

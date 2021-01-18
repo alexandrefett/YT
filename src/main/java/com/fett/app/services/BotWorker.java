@@ -18,34 +18,23 @@
 
 package com.fett.app.services;
 
-import com.fett.app.models.Constants;
-import com.fett.app.models.Driver;
-import com.fett.app.models.OrbitProxie;
-import com.fett.app.models.StatusModel;
+import com.fett.app.models.*;
 import com.fett.app.exceptions.NoSuchTitleException;
-import com.fett.app.utils.AnsiColors;
-import com.fett.app.utils.Log;
 import com.fett.app.utils.UserAgent;
 import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.firefox.FirefoxBinary;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxOptions;
-import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Stream;
@@ -53,9 +42,7 @@ import java.util.stream.Stream;
 public class BotWorker implements Runnable {
 
     private String workerName;
-    private String workerColor;
     private String apiKey;
-    private String videoUrl;
     private Driver driverType;
     private Integer watchLength;
     private OrbitProxie proxies;
@@ -63,44 +50,37 @@ public class BotWorker implements Runnable {
     private File driverLocation;
     private UserAgent userAgent;
     private Integer numberOfWatches = 0;
-    private StatusModel statusModel;
-    private String[] videos;
+    private final ArrayList<String> videos;
+    private final ArrayList<String> ids;
     private final StatusModel model;
 
-    public BotWorker(String workerName, String apiKey, String[] videos, Driver driverType,
-                     Integer watchLength, String workerColor, File driverLocation, StatusModel model)
-            throws IOException, URISyntaxException {
+    public BotWorker(
+            String workerName,
+            ArrayList<String> videos,
+            Driver driverType,
+            Integer watchLength,
+            File driverLocation,
+            StatusModel model,
+            String apiKey,
+            ArrayList<String> ids
+            ) throws IOException, URISyntaxException {
         this.workerName = workerName;
         this.apiKey = apiKey;
-        this.videos = videos;
         this.driverType = driverType;
         this.watchLength = watchLength;
-        this.workerColor = workerColor;
         this.driverLocation = driverLocation;
         this.model = model;
-        this.initializeBot();
+        this.videos = new ArrayList<String>(videos);
+        this.ids=ids;
+        model.changeValue(workerName, numberOfWatches, "Queued...", "-");
     }
 
     @SuppressWarnings("Duplicates")
     private void initializeBot() throws IOException, URISyntaxException {
-        Log.WINFO(this.workerName, this.workerColor, "Initializing. . .");
-        this.proxies = new OrbitProxie(this.workerName, this.apiKey, this.workerColor);
+        this.proxies = new OrbitProxie(this.workerName, this.apiKey);
         this.userAgent = new UserAgent(this.driverType);
-
-
-        switch (this.driverType.name() )
-        {
-            case Constants.FIREFOX:
-                this.setFirefoxDriver();
-                break;
-            case Constants.CHROME:
-                this.setChromeDriver();
-                break;
-            case Constants.SAFARI:
-                break;
-        }
-        Log.WINFO(this.workerName, this.workerColor, "Initialization Complete!");
-        model.changeValue(workerName, numberOfWatches, "Initialization Complete!");
+        Collections.shuffle(videos);
+        this.setChromeDriver();
     }
 
     private void setChromeDriver() {
@@ -112,12 +92,15 @@ public class BotWorker implements Runnable {
         LoggingPreferences logPrefs = new LoggingPreferences();
 
         chromeOptions.add(String.format("--proxy-server=%s", proxies.getCurrentProxy().getHttpProxy()));
-        chromeOptions.add(String.format("--user-agent=%s", userAgent.randomUA()));
+        String a = userAgent.randomUA();
+        System.out.println(a);
+        chromeOptions.add(String.format("--user-agent=%s", a));
         chromeOptions.add("--mute-audio");
         chromeOptions.add("--incognito");
-        logPrefs.enable(LogType.BROWSER, Level.OFF);
+
+        logPrefs.enable(LogType.BROWSER, Level.ALL);
         logPrefs.enable(LogType.PERFORMANCE, Level.OFF);
-        logPrefs.enable(LogType.DRIVER, Level.OFF);
+        logPrefs.enable(LogType.DRIVER, Level.ALL);
         logPrefs.enable(LogType.CLIENT, Level.OFF);
         logPrefs.enable(LogType.PROFILER, Level.OFF);
         logPrefs.enable(LogType.SERVER, Level.OFF);
@@ -129,98 +112,83 @@ public class BotWorker implements Runnable {
 
         options.setCapability("proxy", this.proxies.getCurrentProxy());
         this.webDriver = new ChromeDriver(options);
-        model.changeValue(workerName, numberOfWatches, "Chrome Driver Set.");
+        model.changeValue(workerName, numberOfWatches, "Chrome Driver Set.", "-");
     }
 
-    /**
-     * Sets the webdriver to FireFox. We set our optimal parameters here
-     * to ensure our proxy is set correctly.
-     */
-    private void setFirefoxDriver() {
-        System.setProperty("webdriver.gecko.driver", "./geckodriver/geckodriver");
-        FirefoxOptions options = new FirefoxOptions();
-        FirefoxProfile profile = new FirefoxProfile();
-        FirefoxBinary binary = new FirefoxBinary(this.driverLocation);
-        LoggingPreferences logPrefs = new LoggingPreferences();
-        System.setProperty(FirefoxDriver.SystemProperty.DRIVER_USE_MARIONETTE,"true");
-        // hide firefox logs from console
-        System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE,"/tmp/rust_");
-
-        profile.setPreference("media.volume_scale", "0.0");
-        profile.setPreference("general.useragent.override", userAgent.randomUA());
-        profile.setPreference("network.proxy.type", 1);
-        profile.setPreference("network.proxy.http", this.proxies.getProxie().getIp());
-        profile.setPreference("network.proxy.http_port", this.proxies.getProxie().getPort());
-        profile.setPreference("network.proxy.ssl", this.proxies.getProxie().getIp());
-        profile.setPreference("network.proxy.ssl_port", this.proxies.getProxie().getPort());
-
-        logPrefs.enable(LogType.BROWSER, Level.ALL);
-        logPrefs.enable(LogType.PERFORMANCE, Level.INFO);
-        options.setCapability(CapabilityType.LOGGING_PREFS, logPrefs);
-
-        options.setProfile(profile);
-        //options.setHeadless(true);
-        options.setBinary(binary);
-        options.setProxy(this.proxies.getCurrentProxy());
-        options.setCapability("proxy", this.proxies.getCurrentProxy());
-        this.webDriver = new FirefoxDriver(options);
-
-    }
-
-    /**
-     * Prior to watching the video, we need to set our worker up, with an accurate watch time. Meaning
-     * We need to calculate where our current watch position is at in the video, use that current value
-     * or how long we want to watch for, to determine how long our thread needs to sleep for (aka "watching").
-     * @return watchTime (in millis)
-     * @throws ElementClickInterceptedException
-     * @throws NoSuchTitleException Our page doesnt end with YouTube, maybe there is an incorrect URL
-     */
-    private int setVideo(String video) throws InterruptedException {
-
-        this.webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-        this.webDriver.get("https://www.google.com/");
-//
-//        WebElement p=this.webDriver.findElement(By.name("q"));
-
-//        Log.WINFO(this.workerName, this.workerColor,"Finding q...");
-//        p.sendKeys(this.videoUrl);
-//        Log.WINFO(this.workerName, this.workerColor,"Sending keys..."+videoUrl);
-//        WebDriverWait x = new WebDriverWait(this.webDriver, 10);
-//        x.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//ul")));
-        new WebDriverWait(webDriver, 15).until(
-                webDriver -> ((JavascriptExecutor) webDriver)
-                        .executeScript("return document.readyState")
-                        .equals("complete"));
-//        p.submit();
-//        Log.WINFO(this.workerName, this.workerColor,"Searching vídeo...");
-
-        this.webDriver.get(Constants.YOUTUBE_URL + video + Constants.getFeature());
-        new WebDriverWait(webDriver, 15).until(
-                webDriver -> ((JavascriptExecutor) webDriver)
-                        .executeScript("return document.readyState")
-                        .equals("complete"));
+    private boolean connectYoutube(){
         try {
-            Thread.sleep(5000);
-            this.webDriver.findElement(By.id("dismiss-button")).click();
-            model.changeValue(workerName, numberOfWatches, "Pressing NO,THANKS");
-        } catch (NoSuchElementException ex) {
-            model.changeValue(workerName, numberOfWatches, "NO,THANKS not found. Continue...");
+            this.webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+
+            this.webDriver.get("https://www.youtube.com");
+            new WebDriverWait(webDriver, 15).until(
+                    webDriver -> ((JavascriptExecutor) webDriver)
+                            .executeScript("return document.readyState")
+                            .equals("complete"));
+        } catch (WebDriverException ex){
+            model.changeValue(workerName, numberOfWatches, "Connection failed", "-");
+            return false;
         }
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
+            WebElement wl = this.webDriver.findElement(By.id("dismiss-button"));
+            wl.findElement(By.xpath("//a[@class=\"yt-simple-endpoint style-scope yt-button-renderer\"]")).click();
+            model.changeValue(workerName, numberOfWatches, "Pressing NO,THANKS", "-");
+        } catch (NoSuchElementException | InterruptedException ex) {
+            model.changeValue(workerName, numberOfWatches, "NO,THANKS not found. Continue...", "-");
+        }
+        try {
+            Thread.sleep(3000);
             this.webDriver.switchTo().frame(
                     this.webDriver.findElement(By.id("iframe")));
             new WebDriverWait(this.webDriver, 5).until(
                     ExpectedConditions.elementToBeClickable(By.id("introAgreeButton"))).click();
             this.webDriver.switchTo().defaultContent();
-            model.changeValue(workerName, numberOfWatches, "Accepting COOKIES...");
-        } catch (NoSuchElementException | org.openqa.selenium.TimeoutException ex){
+            model.changeValue(workerName, numberOfWatches, "Accepting COOKIES...", "-");
+            new WebDriverWait(webDriver, 15).until(
+                    webDriver -> ((JavascriptExecutor) webDriver)
+                            .executeScript("return document.readyState")
+                            .equals("complete"));
+        } catch (NoSuchElementException | TimeoutException | InterruptedException ex){
             this.webDriver.switchTo().defaultContent();
-            model.changeValue(workerName, numberOfWatches, "No COOKIES consent. Continue...");
+            model.changeValue(workerName, numberOfWatches, "No COOKIES consent. Continue...", "-");
         }
+        return true;
+    }
+
+    private boolean searchVideo(String video){
         try{
-            //this.webDriver.findElement(By.xpath("//a[@href="+"\"" + videoUrl + "\"" + "]")).click();
-            //Log.WINFO(this.workerName, this.workerColor,"Click link...");
+            WebElement element = this.webDriver.findElement(By.id("search"));
+
+            element.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
+            element.sendKeys(video + " CANAL ATAQUE TRIPLO");
+            element.sendKeys(Keys.ENTER);
+            new WebDriverWait(webDriver, 5).until(
+                    webDriver -> ((JavascriptExecutor) webDriver)
+                            .executeScript("return document.readyState")
+                            .equals("complete"));
+            Thread.sleep(3000);
+            List<WebElement> elements = this.webDriver.findElements(By.xpath("//a[@id=\"video-title\"]"));
+
+            for(int i = 0;i<elements.size();i++){
+                if(ids.contains(elements.get(i).getAttribute("href"))){
+                    elements.get(i).click();
+                    return true;
+                }
+            }
+            System.out.println("Not found: "+video);
+        } catch (WebDriverException | InterruptedException ex){
+            System.out.println(ex.getMessage());
+        }
+        return false;
+    }
+
+    private int setVideo(String s) throws InterruptedException {
+        new WebDriverWait(webDriver, 15).until(
+                webDriver -> ((JavascriptExecutor) webDriver)
+                        .executeScript("return document.readyState")
+                        .equals("complete"));
+
+        try{
             String a = this.webDriver.getCurrentUrl();
             String j = this.webDriver.getTitle();
             System.out.println("Your page title Is : "+j);
@@ -232,9 +200,9 @@ public class BotWorker implements Runnable {
                 try {
                     WebElement playButton = this.webDriver.findElement(By.id("player-container"));
                     //if (Objects.equals(playButton.getAttribute("title"), "Play (k)"))
-                        playButton.click();
+                        //playButton.click();
                 } catch (ElementClickInterceptedException e) {
-                    model.changeValue(workerName, numberOfWatches, e.getMessage());
+                    model.changeValue(workerName, numberOfWatches, e.getMessage(), s);
                     throw new ElementClickInterceptedException(e.getMessage());
                 }
 
@@ -253,30 +221,22 @@ public class BotWorker implements Runnable {
                     DecimalFormat decimalFormat = new DecimalFormat(pattern);
                     String format = decimalFormat.format(rand / 1000);
 
-                    model.changeValue(workerName, numberOfWatches, "Bot Watching now for "+format+" Seconds");
+                    model.changeValue(workerName, numberOfWatches, "Bot Watching now for "+format+" Seconds", s);
                     return rand;
 
                 }
             } else  {
-                model.changeValue(workerName, numberOfWatches, "reCaptcha Showing!!");
+                model.changeValue(workerName, numberOfWatches, "reCaptcha Showing!!",s);
                 throw new NoSuchTitleException(String.format("Title does not end with YouTube, please ensure you have " +
                         "provided the correct URL to the video. Actual title: %s", this.webDriver.getTitle()));
             }
 
         } catch(NoSuchElementException ex){
-            model.changeValue(workerName, numberOfWatches, "Fail...");
+            model.changeValue(workerName, numberOfWatches, "Fail...",s);
         }
         return 0;
     }
 
-    /**
-     * Utility to calculate how long our watch time is for. We calculate our current viewing position
-     * (the current watch time in the video), and subtract that from the total length of the video.
-     * Convert the seconds into millis for our Thread.Sleep
-     * @param currentTime Current position our worker is at
-     * @param videoLength The total lengtht of the video
-     * @return watchTime in millis
-     */
 
     private Integer calculateWatchTime ( String currentTime, String videoLength )
     {
@@ -297,75 +257,39 @@ public class BotWorker implements Runnable {
         return watchLength * 1000;
     }
 
-    @SuppressWarnings("Duplicates")
-    /**
-     * Resets the workers(bot's) webDriver parameters, rotates our proxies to obtain a new
-     * fresh IP, and ensures our last drivers process has been closed out.
-     */
-    private void resetBot()
-    {
-        model.changeValue(workerName, numberOfWatches, "Resetting Bot");
-        if ( this.webDriver != null )
-            this.webDriver.quit();
-
-        this.proxies.generateProxies();;
-
-        switch (this.driverType.name() )
-        {
-            case Constants.FIREFOX:
-                this.setFirefoxDriver();
-                break;
-            case Constants.CHROME:
-                this.setChromeDriver();
-                break;
-            case Constants.SAFARI:
-            case Constants.OPERA:
-            case Constants.EDGE:
-                break;
-        }
-    }
-
-    /**
-     * Provides a status message of our current worker
-     */
-    private void status()
-    {
-        StringBuilder builder = new StringBuilder()
-                .append("\n")
-                .append(String.format("  +------ %s %s Statistics %s ------+\n",
-                        this.workerColor, this.workerName, AnsiColors.ANSI_RESET))
-                .append(String.format("  [-] Current Video: %s%s%s\n",
-                        AnsiColors.ANSI_BLUE, this.videoUrl, AnsiColors.ANSI_RESET))
-                .append(String.format("  [-] Proxy IP: %s%s%s\n",
-                        AnsiColors.ANSI_BLUE, this.proxies.getProxie().getPort(), AnsiColors.ANSI_RESET))
-                .append(String.format("  [-] Visits: %s%d%s\n",
-                        AnsiColors.ANSI_GREEN, this.numberOfWatches, AnsiColors.ANSI_RESET));
-        System.out.println(builder.toString());
-    }
-
     @Override
     public void run() {
         Random r = new Random();
-        int nextVideo = r.nextInt(videos.length);
-
-        for (;;) {
-            try {
-                Thread.sleep(this.setVideo(videos[nextVideo]));
-                model.changeValue(workerName, numberOfWatches, "Finished video");
-                this.numberOfWatches += 1;
-                this.status();
-                this.resetBot();
-                nextVideo++;
-                if(nextVideo>=videos.length){
-                    nextVideo = 0;
+        try {
+            this.initializeBot();
+            Thread.sleep(r.nextInt(15000));
+        } catch (URISyntaxException | IOException | InterruptedException e) {
+            model.changeValue(workerName, numberOfWatches, "Fail to initilize...",e.getMessage());
+            e.printStackTrace();
+            if (this.webDriver != null) {
+                this.webDriver.quit();
+            }
+            return;
+        }
+        if(connectYoutube()) {
+            for (int i = 0; i < videos.size(); i++) {
+                try {
+                    if(searchVideo(videos.get(i))) {
+                        Thread.sleep(this.setVideo(videos.get(i)));
+                        numberOfWatches++;
+                        model.changeValue(workerName, numberOfWatches, "Finished video",videos.get(i));
+                    } else {
+                        model.changeValue(workerName, numberOfWatches, "Video not found...",videos.get(i));
+                    }
+                    //this.resetBot();
+                } catch (InterruptedException e) {
+                    model.changeValue(workerName, numberOfWatches, e.getMessage(),videos.get(i));
+                    System.out.println(e.getMessage());
                 }
-            } catch (InterruptedException e) {
-                Log.WERROR(workerName, workerColor,e.getMessage());
-                Log.WINFO(this.workerName, this.workerColor,e.getMessage());
-                model.changeValue(workerName, numberOfWatches, e.getMessage());
-                if ( this.webDriver != null ) {
-                    this.webDriver.quit();
-                }
+            }
+            model.changeValue(workerName, numberOfWatches, "Finishing worker...","-");
+            if (this.webDriver != null) {
+                this.webDriver.quit();
             }
         }
     }

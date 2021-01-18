@@ -37,18 +37,14 @@ public class OrbitProxie {
     private final String protoType = "https";
 
     private OrbitProxies proxie;
-    private String workerName;
-    private String workerColor;
     private String apiKey;
     private Proxy currentProxy;
 
     private RequestSender sender;
     private Gson gson;
 
-    public OrbitProxie(String workerName, String apiKey, String workerColor) {
-        this.workerName = workerName;
+    public OrbitProxie(String workerName, String apiKey) {
         this.apiKey = apiKey;
-        this.workerColor = workerColor;
 
         this.sender = new HttpRequestSender();
         this.gson = new GsonBuilder().setPrettyPrinting().create();
@@ -65,22 +61,6 @@ public class OrbitProxie {
 
     public void setProxie(OrbitProxies proxie) {
         this.proxie = proxie;
-    }
-
-    public String getWorkerName() {
-        return workerName;
-    }
-
-    public void setWorkerName(String workerName) {
-        this.workerName = workerName;
-    }
-
-    public String getWorkerColor() {
-        return workerColor;
-    }
-
-    public void setWorkerColor(String workerColor) {
-        this.workerColor = workerColor;
     }
 
     public String getApiKey() {
@@ -120,7 +100,7 @@ public class OrbitProxie {
     {
         HashMap<String, String> params = new HashMap<>();
 
-        Request request = new Request(UrlUtil.buildUrlQuery(Constants.SearchEndpoint+apiKey, params));
+        Request request = new Request(UrlUtil.buildUrlQuery(Constants.SearchEndpoint+apiKey+"&location=BR&youtube=true", params));
         try {
             Response response = sender.sendRequest(request);
             String body = response.getBody();
@@ -128,10 +108,11 @@ public class OrbitProxie {
             if(proxie.getWebsites().isYoutube()) {
                 currentProxy = new Proxy();
                 currentProxy.setHttpProxy(proxie.getCurl());
-                Log.WINFO(workerName, workerColor, "Proxy::" + currentProxy.getHttpProxy());
+                //currentProxy.setSslProxy(proxie.getCurl());
+
             }
         } catch (JsonSyntaxException | IOException e) {
-            Log.WERROR(workerName, workerColor, e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
 }
