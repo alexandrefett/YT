@@ -26,7 +26,6 @@ import com.fett.app.dao.HttpRequestSender;
 import com.fett.app.dao.RequestSender;
 import com.fett.app.http.Request;
 import com.fett.app.http.Response;
-import com.fett.app.utils.Log;
 import com.fett.app.utils.UrlUtil;
 import org.openqa.selenium.Proxy;
 
@@ -43,7 +42,7 @@ public class OrbitProxie {
     private RequestSender sender;
     private Gson gson;
 
-    public OrbitProxie(String workerName, String apiKey) {
+    public OrbitProxie(String apiKey) {
         this.apiKey = apiKey;
 
         this.sender = new HttpRequestSender();

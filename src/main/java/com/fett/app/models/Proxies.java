@@ -26,7 +26,6 @@ import com.fett.app.dao.HttpRequestSender;
 import com.fett.app.dao.RequestSender;
 import com.fett.app.http.Request;
 import com.fett.app.http.Response;
-import com.fett.app.utils.Log;
 import com.fett.app.utils.UrlUtil;
 import org.openqa.selenium.Proxy;
 
@@ -74,7 +73,6 @@ public class Proxies {
             String body = response.getBody();
             proxies = gson.fromJson(body, PubProxies.class);
         } catch (JsonSyntaxException | IOException e) {
-            Log.WERROR(workerName, workerColor, e.getMessage());
             generateProxies();
         }
 
@@ -84,8 +82,6 @@ public class Proxies {
 
     public void rotateProxies()
     {
-        Log.WWARN(workerName, workerColor,"Rotating proxies");
-
         // Add the current proxy to the used Set
         this.usedProxies.add(this.currentProxyModel);
         // Load a new one
@@ -100,14 +96,11 @@ public class Proxies {
 
     // fix randomproxy problem
     private void loadNewProxy() {
-        Log.WWARN(workerName, workerColor,"Load new proxies");
         this.usedProxies.add(this.getCurrentProxyModel());
         Datum proxy = randomProxy();
             if ( isUsed(proxy) ) {
                 try {
-                    Log.WWARN(workerName, workerColor,"proxy already used");
                     Thread.sleep(3000);
-                    Log.WWARN(workerName, workerColor,"Refreshing Proxy list...");
                     this.refreshProxies();
                 } catch (InterruptedException e) {
                     e.printStackTrace();

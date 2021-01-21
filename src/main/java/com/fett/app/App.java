@@ -18,105 +18,46 @@
 
 package com.fett.app;
 
-import com.fett.app.models.Driver;
-import com.fett.app.models.StatusModel;
-import com.fett.app.services.BotWorker;
-import com.fett.app.services.DriverConfiguration;
-import com.fett.app.utils.FileUtil;
-
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import com.fett.app.utils.AnsiColors;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Scanner;
 
 public class App {
-    private static String apiKey;
-    private static Driver driverType = Driver.CHROME;
-    private static Integer watchLength;
-    private static Integer numberOfWorkers;
-    private static Integer viewsTarget;
-    private static String channelURL;
-    private static String[] schemes = {"http", "https"};
-    private static StatusModel[] statusModels;
-    private static ExecutorService executor;
-    private static ArrayList<String> videos;
-    private static ArrayList<String> ids;
 
     public static void main(String[] args) {
-
-        initApp();
-        YTViews frame = new YTViews(
-                apiKey,
-                channelURL,
-                String.valueOf(numberOfWorkers),
-                watchLength,
-                videos.size());
-        frame.setVisible(true);
-
+        boolean isRunning = true;
+        YoutubeBot ytb;
         try {
-            StatusModel[] statusModels = new StatusModel[viewsTarget];
-            StatusViewLabel[] views = new StatusViewLabel[viewsTarget];
+            FileInputStream refreshToken = new FileInputStream("jytb-f8a7f-bde509f20e74.json");
 
-            boolean throttle = true;
-            for (; ; ) {
-                if (numberOfWorkers == 12) {
-                    throttle = false;
-                }
-                if (numberOfWorkers == 3) {
-                    throttle = true;
-                }
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(refreshToken))
+                    .setDatabaseUrl("https://jytb-f8a7f.firebaseio.com/")
+                    .build();
 
-                executor = Executors.newFixedThreadPool(numberOfWorkers);
-                for (int i = 0; i < viewsTarget; i++) {
-                    StatusModel statusModel = new StatusModel();
-                    statusModels[i] = statusModel;
-                    views[i] = new StatusViewLabel(statusModel);
-                    statusModel.registerObserver(views[i]);
-                    frame.getWorkerPanel().add(views[i]);
-                    frame.getWorkerPanel().revalidate();
+            FirebaseApp app = FirebaseApp.initializeApp(options);
+            System.out.println("Initilized...");
+            Database db = new Database(app);
+            ytb = new YoutubeBot(db);
 
-                    Runnable worker = new BotWorker(
-                            "Worker " + (i + 1),
-                            videos,
-                            driverType,
-                            watchLength,
-                            DriverConfiguration.getDriver(),
-                            statusModels[i],
-                            apiKey,
-                            ids);
-                    executor.execute(worker);
-                }
-                frame.pack();
-                executor.shutdown();
-                // Wait until all threads are finish
-                while (!executor.isTerminated()) {
-                }
-                if (throttle) {
-                    numberOfWorkers++;
-                } else {
-                    numberOfWorkers--;
-                }
-            }
-        } catch (URISyntaxException | IOException ex) {
+
+            UserRecord userRecord = FirebaseAuth.getInstance().getUser("XFTGaFvOF9Q2dVH8sHespNlfD8C3");
+            System.out.println("Successfully fetched user data: " + userRecord.getUid());
+            System.out.println(userRecord.getEmail());
+
+            System.in.read();
+            ytb.finish();
+        } catch (IOException | FirebaseAuthException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
-
     }
 
-    private static void initApp() {
-        Random r = new Random();
-        videos = FileUtil.readFile("video_title.txt");
-        ids = FileUtil.readFile("video_id.txt");
-        ids.forEach(e -> ids.set(ids.indexOf(e), "https://www.youtube.com/watch?v=" + e));
-        ArrayList<String> config = FileUtil.readFile("config.txt");
-        channelURL = config.get(0);
-        apiKey = config.get(1);
-        numberOfWorkers = Integer.valueOf(config.get(2));
-        viewsTarget = Integer.valueOf(config.get(3));
-        watchLength = Integer.valueOf(config.get(4));
-        viewsTarget = r.nextInt(viewsTarget) + 20;
-    }
 }

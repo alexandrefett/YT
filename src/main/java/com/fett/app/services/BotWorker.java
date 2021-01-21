@@ -18,6 +18,7 @@
 
 package com.fett.app.services;
 
+import com.fett.app.Database;
 import com.fett.app.models.*;
 import com.fett.app.exceptions.NoSuchTitleException;
 import com.fett.app.utils.UserAgent;
@@ -25,6 +26,8 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+//import org.openqa.selenium.logging.LogType;
+//import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
@@ -41,45 +44,33 @@ import java.util.stream.Stream;
 
 public class BotWorker implements Runnable {
 
-    private String workerName;
     private String apiKey;
     private Driver driverType;
-    private Integer watchLength;
     private OrbitProxie proxies;
     private WebDriver webDriver;
-    private File driverLocation;
     private UserAgent userAgent;
-    private Integer numberOfWatches = 0;
-    private final ArrayList<String> videos;
-    private final ArrayList<String> ids;
-    private final StatusModel model;
+    private final Profile profile;
+    private final Task task;
+    private final Database db;
 
     public BotWorker(
-            String workerName,
-            ArrayList<String> videos,
+            Profile profile,
+            Task task,
             Driver driverType,
-            Integer watchLength,
-            File driverLocation,
-            StatusModel model,
             String apiKey,
-            ArrayList<String> ids
-            ) throws IOException, URISyntaxException {
-        this.workerName = workerName;
+            Database db)  throws IOException, URISyntaxException {
         this.apiKey = apiKey;
         this.driverType = driverType;
-        this.watchLength = watchLength;
-        this.driverLocation = driverLocation;
-        this.model = model;
-        this.videos = new ArrayList<String>(videos);
-        this.ids=ids;
-        model.changeValue(workerName, numberOfWatches, "Queued...", "-");
+        this.profile = profile;
+        this.task = task;
+        this.db = db;
     }
 
     @SuppressWarnings("Duplicates")
     private void initializeBot() throws IOException, URISyntaxException {
-        this.proxies = new OrbitProxie(this.workerName, this.apiKey);
+        this.proxies = new OrbitProxie(this.apiKey);
         this.userAgent = new UserAgent(this.driverType);
-        Collections.shuffle(videos);
+        //Collections.shuffle(profile.getVideos());
         this.setChromeDriver();
     }
 
@@ -97,6 +88,7 @@ public class BotWorker implements Runnable {
         chromeOptions.add("--mute-audio");
         chromeOptions.add("--incognito");
 
+
         logPrefs.enable(LogType.BROWSER, Level.ALL);
         logPrefs.enable(LogType.PERFORMANCE, Level.OFF);
         logPrefs.enable(LogType.DRIVER, Level.ALL);
@@ -111,7 +103,7 @@ public class BotWorker implements Runnable {
 
         options.setCapability("proxy", this.proxies.getCurrentProxy());
         this.webDriver = new ChromeDriver(options);
-        model.changeValue(workerName, numberOfWatches, "Chrome Driver Set.", "-");
+        //model.changeValue(workerName, numberOfWatches, "Chrome Driver Set.", "-");
     }
 
     private boolean connectYoutube(){
@@ -124,42 +116,46 @@ public class BotWorker implements Runnable {
                             .executeScript("return document.readyState")
                             .equals("complete"));
         } catch (WebDriverException ex){
-            model.changeValue(workerName, numberOfWatches, "Connection failed", "-");
+            //model.changeValue(workerName, numberOfWatches, "Connection failed", "-");
             return false;
         }
         try {
             Thread.sleep(2000);
             WebElement wl = this.webDriver.findElement(By.id("dismiss-button"));
             wl.findElement(By.xpath("//a[@class=\"yt-simple-endpoint style-scope yt-button-renderer\"]")).click();
-            model.changeValue(workerName, numberOfWatches, "Pressing NO,THANKS", "-");
+            //System.out.println("No thanks");
+            //model.changeValue(workerName, numberOfWatches, "Pressing NO,THANKS", "-");
         } catch (NoSuchElementException | InterruptedException ex) {
-            model.changeValue(workerName, numberOfWatches, "NO,THANKS not found. Continue...", "-");
+            //model.changeValue(workerName, numberOfWatches, "NO,THANKS not found. Continue...", "-");
         }
         try {
             Thread.sleep(3000);
             this.webDriver.switchTo().frame(
                     this.webDriver.findElement(By.id("iframe")));
-            new WebDriverWait(this.webDriver, 5).until(
-                    ExpectedConditions.elementToBeClickable(By.id("introAgreeButton"))).click();
+            new WebDriverWait(this.webDriver, 5).until(wd ->
+                    ExpectedConditions.elementToBeClickable(By.id("introAgreeButton")));
+            this.webDriver.findElement(By.id("introAgreeButton")).click();
             this.webDriver.switchTo().defaultContent();
-            model.changeValue(workerName, numberOfWatches, "Accepting COOKIES...", "-");
+            //System.out.println("Cookies...");
+            //model.changeValue(workerName, numberOfWatches, "Accepting COOKIES...", "-");
             new WebDriverWait(webDriver, 15).until(
                     webDriver -> ((JavascriptExecutor) webDriver)
                             .executeScript("return document.readyState")
                             .equals("complete"));
         } catch (NoSuchElementException | TimeoutException | InterruptedException ex){
             this.webDriver.switchTo().defaultContent();
-            model.changeValue(workerName, numberOfWatches, "No COOKIES consent. Continue...", "-");
+            //model.changeValue(workerName, numberOfWatches, "No COOKIES consent. Continue...", "-");
+            //System.out.println("No COOKIES consent. Continue...");
         }
         return true;
     }
 
-    private boolean searchVideo(String video){
+    private boolean searchVideo(Video video){
         try{
             WebElement element = this.webDriver.findElement(By.id("search"));
 
             element.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
-            element.sendKeys(video + " CANAL ATAQUE TRIPLO");
+            element.sendKeys(video.getTitle() + " CANAL ATAQUE TRIPLO");
             element.sendKeys(Keys.ENTER);
             new WebDriverWait(webDriver, 5).until(
                     webDriver -> ((JavascriptExecutor) webDriver)
@@ -169,7 +165,7 @@ public class BotWorker implements Runnable {
             List<WebElement> elements = this.webDriver.findElements(By.xpath("//a[@id=\"video-title\"]"));
 
             for(int i = 0;i<elements.size();i++){
-                if(ids.contains(elements.get(i).getAttribute("href"))){
+                if(video.getUrl().equals(elements.get(i).getAttribute("href"))){
                     elements.get(i).click();
                     return true;
                 }
@@ -180,7 +176,7 @@ public class BotWorker implements Runnable {
         return false;
     }
 
-    private int setVideo(String s) throws InterruptedException {
+    private int setVideo(Video video) throws InterruptedException {
         new WebDriverWait(webDriver, 15).until(
                 webDriver -> ((JavascriptExecutor) webDriver)
                         .executeScript("return document.readyState")
@@ -195,17 +191,17 @@ public class BotWorker implements Runnable {
                     //if (Objects.equals(playButton.getAttribute("title"), "Play (k)"))
                         //playButton.click();
                 } catch (ElementClickInterceptedException e) {
-                    model.changeValue(workerName, numberOfWatches, e.getMessage(), s);
+                    //model.changeValue(workerName, numberOfWatches, e.getMessage(), s);
                     throw new ElementClickInterceptedException(e.getMessage());
                 }
 
                 String currentVideoTime = this.webDriver.findElement(By.className("ytp-time-current")).getAttribute("innerHTML");
                 String totalVideoTime = this.webDriver.findElement(By.className("ytp-time-duration")).getAttribute("innerHTML");
-                if (this.watchLength == -1) {
+                if (this.task.getWatchlength() == -1) {
                     return calculateWatchTime( currentVideoTime, totalVideoTime );
                 } else {
                     // Randomize watch duration every visits,
-                    int w = this.watchLength * 1000;
+                    int w = this.task.getWatchlength() * 1000;
                     int max = w + 5000;
                     int min = w;
                     int range = max - min + min;
@@ -214,19 +210,23 @@ public class BotWorker implements Runnable {
                     DecimalFormat decimalFormat = new DecimalFormat(pattern);
                     String format = decimalFormat.format(rand / 1000);
 
-                    model.changeValue(workerName, numberOfWatches, "Bot Watching now for "+format+" Seconds", s);
+                    //model.changeValue(workerName, numberOfWatches, "Bot Watching now for "+format+" Seconds", s);
+                    System.out.println("Bot Watching now for "+format+" Seconds");
+                    System.out.println(video.getTitle());
+
                     return rand;
 
                 }
             } else  {
-                model.changeValue(workerName, numberOfWatches, "reCaptcha Showing!!",s);
+                //model.changeValue(workerName, numberOfWatches, "reCaptcha Showing!!",s);
                 throw new NoSuchTitleException(String.format("Title does not end with YouTube, please ensure you have " +
                         "provided the correct URL to the video. Actual title: %s", this.webDriver.getTitle()));
             }
 
         } catch(NoSuchElementException ex){
-            model.changeValue(workerName, numberOfWatches, "Fail...",s);
+            //model.changeValue(workerName, numberOfWatches, "Fail...",s);
         }
+
         return 0;
     }
 
@@ -252,12 +252,15 @@ public class BotWorker implements Runnable {
 
     @Override
     public void run() {
+        List<Video> videos;
         Random r = new Random();
         try {
+            Thread.sleep(r.nextInt(5000));
+            videos = new ArrayList<Video>(profile.getVideos());
+            Collections.shuffle(videos);
             this.initializeBot();
-            Thread.sleep(r.nextInt(15000));
         } catch (URISyntaxException | IOException | InterruptedException e) {
-            model.changeValue(workerName, numberOfWatches, "Fail to initilize...",e.getMessage());
+            //model.changeValue(workerName, numberOfWatches, "Fail to initilize...",e.getMessage());
             e.printStackTrace();
             if (this.webDriver != null) {
                 this.webDriver.quit();
@@ -268,18 +271,22 @@ public class BotWorker implements Runnable {
             for (int i = 0; i < videos.size(); i++) {
                 try {
                     if(searchVideo(videos.get(i))) {
-                        Thread.sleep(this.setVideo(videos.get(i)));
-                        numberOfWatches++;
-                        model.changeValue(workerName, numberOfWatches, "Finished video",videos.get(i));
+                        int watchFor = this.setVideo(videos.get(i));
+                        Thread.sleep(watchFor);
+                        db.count(profile.getId(), videos.get(i).getId(), (watchFor/1000));
+                        //System.out.println("Finishing video...");
+                        //model.changeValue(workerName, numberOfWatches, "Finished video",videos.get(i));
                     } else {
-                        model.changeValue(workerName, numberOfWatches, "Video not found...",videos.get(i));
+
+                        //System.out.println("Video not found...");
+                        //model.changeValue(workerName, numberOfWatches, "Video not found...",videos.get(i));
                     }
                     //this.resetBot();
                 } catch (InterruptedException e) {
-                    model.changeValue(workerName, numberOfWatches, e.getMessage(),videos.get(i));
+                    //model.changeValue(workerName, numberOfWatches, e.getMessage(),videos.get(i));
                 }
             }
-            model.changeValue(workerName, numberOfWatches, "Finishing worker...","-");
+            //model.changeValue(workerName, numberOfWatches, "Finishing worker...","-");
             if (this.webDriver != null) {
                 this.webDriver.quit();
             }
