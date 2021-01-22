@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class YoutubeBot {
-    private String apiKey = "RgSnuSLsXCNwwkxAUBrKFhBSRuX8JMbXdkn6tRGOP08";
+    private String apiKey = "APIkey OrbitProxy";
     private Driver driverType = Driver.CHROME;
     private ExecutorService executor;
     private Database db;
