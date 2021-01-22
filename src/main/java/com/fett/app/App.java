@@ -35,11 +35,11 @@ public class App {
         boolean isRunning = true;
         YoutubeBot ytb;
         try {
-            FileInputStream refreshToken = new FileInputStream("jytb-f8a7f-bde509f20e74.json");
+            FileInputStream refreshToken = new FileInputStream("<json firebase>");
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(refreshToken))
-                    .setDatabaseUrl("https://jytb-f8a7f.firebaseio.com/")
+                    .setDatabaseUrl("<url firebase>")
                     .build();
 
             FirebaseApp app = FirebaseApp.initializeApp(options);
