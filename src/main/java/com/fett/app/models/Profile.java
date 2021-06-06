@@ -40,7 +40,6 @@ public class Profile {
     }
 
     public ArrayList<Video> getVideos() {
-        Collections.shuffle(videos);
         return videos;
     }
 

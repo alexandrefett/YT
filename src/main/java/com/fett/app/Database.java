@@ -2,24 +2,22 @@ package com.fett.app;
 
 import com.fett.app.models.Profile;
 import com.fett.app.models.Task;
+import com.fett.app.models.TaskStatus;
 import com.fett.app.models.Video;
+import com.fett.app.youtube.YouTubeChannel;
+import com.google.api.client.util.DateTime;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.*;
-import com.google.cloud.firestore.EventListener;
 import com.google.common.base.Strings;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.firebase.ImplFirebaseTrampolines;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.UserRecord;
 
-import javax.annotation.Nullable;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.List;
+import java.time.Instant;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -48,22 +46,27 @@ public class Database {
         return db;
     }
 
-    public void count(String userid, String videoid, int time){
-        final DocumentReference docRef =
-                db.collection("profile").document(userid).collection("videos").document(videoid);
-        ApiFuture<Void> futureTransaction = db.runTransaction(transaction -> {
-            DocumentSnapshot snapshot = transaction.get(docRef).get();
-            long oldcount = snapshot.getLong("count");
-            transaction.update(docRef, "count", oldcount + 1);
-            long oldtime = snapshot.getLong("time");
-            transaction.update(docRef, "time", oldtime + time);
-            return null;
-        });
+    public void count(Task task, Video video, int time){
+        try {
+            final DocumentReference docRef = db.collection("taskresult")
+                    .document(task.getId());
+            ApiFuture<Void> futureTransaction = db.runTransaction(transaction -> {
+                DocumentSnapshot snapshot = transaction.get(docRef).get();
+                long oldcount = snapshot.getLong("viewcount");
+                transaction.update(docRef, "viewcount", oldcount + 1);
+                long oldtime = snapshot.getLong("timecount");
+                transaction.update(docRef, "timecount", oldtime + time);
+                return null;
+            });
+        } catch (IllegalArgumentException ex){
+            System.out.println(ex.getMessage());
+        }
     }
 
     public void setFinished(Task task){
-        task.setStatus("finished");
-        db.collection("task").document(task.getId()).set(task);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("status", TaskStatus.finished);
+        db.collection("task").document(task.getId()).update(map);
     }
 
     public Profile getProfile(String userid) throws Exception {
@@ -72,42 +75,41 @@ public class Database {
         profile.setId(query.get().getId());
         System.out.println("User: " + profile.getId());
         System.out.println("First: " + profile.getChannel());
-        ApiFuture<QuerySnapshot> queryVideos = db.collection("profile").document(userid).collection("videos").get();
-        queryVideos.get().getDocuments().forEach(doc -> {
-            profile.getVideos().add(doc.toObject(Video.class));
-            profile.getVideos().get(profile.getVideos().size()-1).setId(doc.getId());
-        });
-        profile.getVideos().forEach(e -> System.out.println("Video: " + e.getTitle()));
         return profile;
     }
 
-    private void addListener(){
-       CollectionReference ref = db.collection("task");
-        ref.addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirestoreException e) {
-                queryDocumentSnapshots.getDocuments().forEach(doc->System.out.println(doc.getData().toString()));
-            }
+    public void addMonitoring(Video video, String id, String taskid, int watchlength){
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("title", video.getTitle());
+        map.put("watchlength", watchlength);
+        map.put("start", Instant.now().toEpochMilli());
+        db.collection("taskresult").document(taskid).collection("monitor").document(id).set(map);
+    }
+     public void clearMonitoring(String id, String taskid){
+        db.collection("taskresult").document(taskid).collection("monitor").document(id).delete();
+
+     }
+    public void addStatistics(String channelid, YouTubeChannel stats, YouTubeChannel channel) {
+        DocumentReference ref = db.collection("statistics")
+                .document(channelid);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("views", channel.getItems().get(0).getStatistics().getViewCount());
+        map.put("subscribers", channel.getItems().get(0).getStatistics().getSubscriberCount());
+        ref.set(map);
+
+        stats.getItems().forEach((element) -> {
+            DocumentReference refVideo = ref.collection("videos")
+                    .document(element.getId());
+            Map<String, Object> mapVideo = new HashMap<String, Object>();
+            mapVideo.put("title", element.getSnippet().getTitle());
+            refVideo.set(mapVideo);
+
+            DocumentReference refStat = refVideo.collection("views")
+                    .document();
+            Map<String, Object> mapStat = new HashMap<String, Object>();
+            mapStat.put("timestamp", Calendar.getInstance().getTimeInMillis());
+            mapStat.put("views", element.getStatistics().getViewCount());
+            refStat.set(mapStat);
         });
     }
-
-    void runQuery() throws Exception {
-        ApiFuture<QuerySnapshot> query =
-                db.collection("users").whereLessThan("born", 1900).get();
-        QuerySnapshot querySnapshot = query.get();
-        List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
-        for (QueryDocumentSnapshot document : documents) {
-            System.out.println("User: " + document.getId());
-            System.out.println("First: " + document.getString("first"));
-            if (document.contains("middle")) {
-                System.out.println("Middle: " + document.getString("middle"));
-            }
-            System.out.println("Last: " + document.getString("last"));
-            System.out.println("Born: " + document.getLong("born"));
-        }
-        // [END fs_add_query]
-    }
-
-
-
 }

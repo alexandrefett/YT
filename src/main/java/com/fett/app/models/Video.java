@@ -1,17 +1,31 @@
 package com.fett.app.models;
 
-public class Video {
-    private String id;
-    private String url;
-    private String title;
-    private int count;
-    private int time;
+import java.util.List;
 
-    public Video(String id, String url, String title, int count, int time) {
-        this.url = url;
-        this.title = title;
-        this.count = count;
-        this.time = time;
+public class Video {
+    String id;
+    String url;
+    String title;
+    int viewsadded;
+    int timeadded;
+    int duration;
+    int viewcount;
+    int timecount;
+
+    public int getViewcount() {
+        return viewcount;
+    }
+
+    public void setViewcount(int viewcount) {
+        this.viewcount = viewcount;
+    }
+
+    public int getTimecount() {
+        return timecount;
+    }
+
+    public void setTimecount(int timecount) {
+        this.timecount = timecount;
     }
 
     public String getId() {
@@ -20,9 +34,6 @@ public class Video {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public Video() {
     }
 
     public String getUrl() {
@@ -41,19 +52,28 @@ public class Video {
         this.title = title;
     }
 
-    public int getCount() {
-        return count;
+    public int getViewsadded() {
+        return viewsadded;
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public void setViewsadded(int viewsadded) {
+        this.viewsadded = viewsadded;
     }
 
-    public int getTime() {
-        return time;
+    public int getTimeadded() {
+        return timeadded;
     }
 
-    public void setTime(int time) {
-        this.time = time;
+    public void setTimeadded(int timeadded) {
+        this.timeadded = timeadded;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
     }
 }
+

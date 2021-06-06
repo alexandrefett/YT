@@ -1,112 +1,194 @@
 package com.fett.app;
 
-import com.fett.app.models.Driver;
-import com.fett.app.models.Profile;
-import com.fett.app.models.Task;
-import com.fett.app.services.BotWorker;
+import com.fett.app.models.*;
+import com.fett.app.services.ChannelWorker;
+import com.fett.app.services.DirectWorker;
+import com.fett.app.services.PlaylistWorker;
+import com.fett.app.services.SearchWorker;
+import com.fett.app.utils.ProxyList;
+import com.fett.app.youtube.YouTubeAPI;
+import com.fett.app.youtube.YouTubeChannel;
 import com.google.cloud.firestore.*;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class YoutubeBot {
-    private String apiKey = "APIkey OrbitProxy";
-    private Driver driverType = Driver.CHROME;
+//    private String apiKey = "RgSnuSLsXCNwwkxAUBrKFhBSRuX8JMbXdkn6tRGOP08";
+    private String apiKey = "CzshUQMLepP63rTZHBYd95SKx7DwFqmn";
+//    private String apiKey = "tfpwPGrbxhnyjJEVLqTU89B4cFdeM6mX";
+
     private ExecutorService executor;
     private Database db;
     private List<Task> tasks;
+    private List<Video> videos;
+    private boolean isFinished;
+    private int viewCount = 0;
 
     public YoutubeBot(Database db){
+        this.isFinished = false;
         this.db = db;
         tasks = new ArrayList<Task>();
         taskListener();
+        //startStatistics();
+    }
+
+    private void startStatistics() {
+        String channelid = "UCFQ037EnicEgpIOycjkiU8Q";
+        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+        exec.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Running stats...");
+                YouTubeAPI api = new YouTubeAPI("AIzaSyBJvswioN31bM7ZVU1PicqAl4e6Gs_ymfE");
+                try {
+                    YouTubeChannel channel = api.getChannel(channelid);
+                    String uploadsId = channel.getItems().get(0).getContentDetails().getRelatedPlaylists().getUploads();
+                    YouTubeChannel uploads = api.getPlaylist(uploadsId);
+                    List<String> list = new ArrayList<String>();
+                    uploads.getItems().forEach((element) -> {
+                        list.add(element.getSnippet().getResourceId().getVideoId());
+                    });
+                    String s = String.join(",", list);
+                    YouTubeChannel stats = api.getStats(s);
+                    db.addStatistics(channelid, stats, channel);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, 1, TimeUnit.HOURS);
     }
 
     private void taskListener(){
-        CollectionReference ref = db.getFirestore().collection("task");
-        ref.addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirestoreException e) {
-                tasks.clear();
-                queryDocumentSnapshots.getDocuments().forEach(doc->{
-                    tasks.add(doc.toObject(Task.class));
-                    tasks.get(tasks.size()-1).setId(doc.getId());
-                });
-                System.out.println("------------");
-                tasks.forEach(ta->System.out.println(ta.getId()+" -- " +ta.getStatus()));
-                Optional<Task> t = tasks.stream().filter(tk -> tk.getStatus().equals("running")).findFirst();
-                if(!t.isPresent()){
-                    Optional<Task> next = tasks.stream().filter(tk -> tk.getStatus().equals("queued")).findFirst();
-                    if(next.isPresent()){
-                        Task nextTask = next.get();
-                        nextTask.setId(next.get().getId());
-                        nextTask.setStatus("running");
-                        db.getFirestore().collection("task").document(nextTask.getId()).set(nextTask);
-                    }
-                } else {
-                    try {
-                        System.out.println(t.get().getId()+" :: " +t.get().getUserid());
-                        start(t.get());
-                    } catch (Exception exception) {
-                        exception.printStackTrace();
-                    }
-                }
-            }
-        });
+        try {
+            db.getFirestore().collection("task")
+                    .whereEqualTo("status", TaskStatus.running)
+                    .orderBy("starttime")
+                    .limit(1)
+                    .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                        @Override
+                        public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirestoreException e) {
+                            try {
+
+                                if(!queryDocumentSnapshots.isEmpty()) {
+                                    System.out.println("Starting tasks...");
+                                    Task task = queryDocumentSnapshots.getDocuments().get(0).toObject(Task.class);
+                                    videos = new ArrayList<Video>();
+                                    db.getFirestore()
+                                            .collection("task")
+                                            .document(task.getId())
+                                            .collection("videos")
+                                            .get()
+                                            .get().getDocuments().forEach(v -> {
+                                        Video video = v.toObject(Video.class);
+                                        videos.add(video);
+                                        //videos.get(videos.size()-1).setId(v.getId());
+                                    });
+                                    isFinished = false;
+                                    start(task, videos);
+                                } else {
+                                    System.out.println("Waiting for task...");
+                                }
+                            } catch (InterruptedException ex) {
+                                System.out.println("1"+ex.getMessage());
+                            } catch (ExecutionException ex) {
+                                System.out.println("2"+ex.getMessage());
+                            } catch (Exception ex) {
+                                System.out.println("3"+ex.getMessage());
+                            }
+                        }
+                    });
+        } catch (FirestoreException ex){
+            System.out.println(ex.getMessage());
+        }
     }
 
     public void finish(){
+        isFinished = true;
         executor.shutdownNow();
         while (!executor.isTerminated()) { }
     }
 
-    public void start(Task task) throws Exception {
+    public void start(Task task, List<Video> videos) throws Exception {
         Random r = new Random();
-        int workers = task.getWorkers();
+        int workers = task.getSpeed();
+        String type = task.getType();
+
+        ViewCounter viewCounter = new ViewCounter(0);
+        ProxyList proxyList = new ProxyList();
         try {
-            Profile p = db.getProfile(task.getUserid());
-/*            for(int i =0;i<task.getViews(); i++ ) {
-                for(int j =0;j<p.getVideos().size(); j++ ) {
-                    Thread.sleep(5000);
-                    db.count(task.getUserid(), p.getVideos().get(j).getId(),r.nextInt(120));
-                }
-                System.out.println("view:" + i);
-            }
-            System.out.println("next task");
-
-
- */
-            for (int count = 0;count<task.getViews(); count++ ) {
+            while(!isFinished) {
                 executor = Executors.newFixedThreadPool(workers);
-                for (int i = 0; i < task.getWorkers(); i++) {
-                    Runnable worker = new BotWorker(
-                            p,
-                            task,
-                            driverType,
-                            apiKey,
-                            db);
-                    executor.execute(worker);
-                }
-                if(count + workers < task.getViews()){
-                    count = count + workers;
+                for (int i = 0; i < (task.getViews()-viewCount)/workers; i++) {
+                    switch (type) {
+                        case "direct": {
+                            Runnable worker = new DirectWorker(
+                                    "Worker:"+i,
+                                    task,
+                                    apiKey,
+                                    db,
+                                    viewCounter,
+                                    proxyList,
+                                    videos);
+                            executor.execute(worker);
+                            break;
+                        }
+                        case "search": {
+                            Runnable worker = new SearchWorker(
+                                    "Worker:"+i,
+                                    task,
+                                    apiKey,
+                                    db,
+                                    viewCounter,
+                                    proxyList,
+                                    videos);
+                            executor.execute(worker);
+                            break;
+                        }
+                        case "channel": {
+                            Runnable worker = new ChannelWorker(
+                                    "Worker:"+i,
+                                    task,
+                                    apiKey,
+                                    db,
+                                    viewCounter,
+                                    proxyList,
+                                    videos);
+                            executor.execute(worker);
+                            break;
+                        }
+                        case "playlist": {
+                            Runnable worker = new PlaylistWorker(
+                                    "Worker:"+i,
+                                    task,
+                                    apiKey,
+                                    db,
+                                    viewCounter,
+                                    proxyList,
+                                    videos);
+                            executor.execute(worker);
+                            break;
+                        }
+                    }
                 }
                 executor.shutdown();
-                //Wait until all threads are finish
-                while (!executor.isTerminated()) { }
+                while (!executor.isTerminated()) {
+                    if(viewCounter.getCount()>=task.getViews()){
+                        isFinished = true;
+                    }
+                }
             }
             db.setFinished(task);
-        } catch ( InterruptedException ex) {
-            System.out.println(ex.getMessage());
+            System.out.println("Task finished...");
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("IO");
         } catch (URISyntaxException e) {
-            e.printStackTrace();
+            System.out.println("URI");
         }
     }
 }

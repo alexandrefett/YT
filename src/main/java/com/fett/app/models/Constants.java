@@ -39,7 +39,9 @@ public class Constants {
     /**
      * Default search endpoint for pubproxy
      */
-    public static final String SearchEndpoint = "https://api.proxyorbit.com/v1/?token=";
+    public static final String OrbitEndpoint = "https://api.proxyorbit.com/v1/?token=";
+    public static final String PubEndpoint = "https://api.proxyorbit.com/v1/?token=";
+    public static final String FalconEndpoint = "http://falcon.proxyrotator.com:51337/?apiKey=";
 
     public static final String CHROME = "CHROME";
     public static final String FIREFOX = "FIREFOX";

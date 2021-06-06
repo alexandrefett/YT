@@ -18,7 +18,6 @@
 
 package com.fett.app;
 
-import com.fett.app.utils.AnsiColors;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -27,7 +26,6 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Scanner;
 
 public class App {
 
@@ -46,7 +44,6 @@ public class App {
             System.out.println("Initilized...");
             Database db = new Database(app);
             ytb = new YoutubeBot(db);
-
 
             UserRecord userRecord = FirebaseAuth.getInstance().getUser("XFTGaFvOF9Q2dVH8sHespNlfD8C3");
             System.out.println("Successfully fetched user data: " + userRecord.getUid());

@@ -67,7 +67,7 @@ public class Proxies {
         params.put("https", "true");
         params.put("format", "json");
 
-        Request request = new Request(UrlUtil.buildUrlQuery(Constants.SearchEndpoint, params));
+        Request request = new Request(UrlUtil.buildUrlQuery(Constants.PubEndpoint, params));
         try {
             Response response = sender.sendRequest(request);
             String body = response.getBody();
